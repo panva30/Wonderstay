@@ -1,0 +1,167 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 210 20% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 20% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 20% 12%;
+
+    --primary: 200 70% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 200 30% 95%;
+    --secondary-foreground: 210 20% 12%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 210 12% 50%;
+
+    --accent: 36 90% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 15% 90%;
+    --input: 210 15% 90%;
+    --ring: 200 70% 55%;
+
+    --radius: 0.75rem;
+
+    /* Wonder Stay custom tokens */
+    --ws-teal: 168 60% 38%;
+    --ws-teal-light: 168 45% 92%;
+    --ws-sage: 150 20% 60%;
+    --ws-amber: 36 90% 55%;
+    --ws-amber-light: 36 80% 95%;
+    --ws-sky: 200 70% 55%;
+    --ws-sky-light: 200 60% 95%;
+    --ws-warm-gray: 30 10% 96%;
+    --ws-overlay: 210 20% 12%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 200 70% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 168 30% 95%;
+    --sidebar-accent-foreground: 210 20% 12%;
+    --sidebar-border: 210 15% 90%;
+    --sidebar-ring: 200 70% 55%;
+
+    /* Fonts */
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  .dark {
+    --background: 215 25% 8%;
+    --foreground: 210 15% 92%;
+
+    --card: 215 25% 11%;
+    --card-foreground: 210 15% 92%;
+
+    --popover: 215 25% 11%;
+    --popover-foreground: 210 15% 92%;
+
+    --primary: 200 60% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 20% 16%;
+    --secondary-foreground: 210 15% 92%;
+
+    --muted: 215 20% 16%;
+    --muted-foreground: 210 12% 55%;
+
+    --accent: 36 85% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 20% 18%;
+    --input: 215 20% 18%;
+    --ring: 200 60% 55%;
+
+    --ws-teal: 168 55% 45%;
+    --ws-teal-light: 168 30% 15%;
+    --ws-sage: 150 15% 40%;
+    --ws-amber: 36 85% 50%;
+    --ws-amber-light: 36 40% 15%;
+    --ws-sky: 200 60% 50%;
+    --ws-sky-light: 200 30% 15%;
+    --ws-warm-gray: 215 20% 12%;
+    --ws-overlay: 0 0% 0%;
+
+    --sidebar-background: 215 25% 10%;
+    --sidebar-foreground: 210 15% 85%;
+    --sidebar-primary: 200 60% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 16%;
+    --sidebar-accent-foreground: 210 15% 92%;
+    --sidebar-border: 215 20% 18%;
+    --sidebar-ring: 200 60% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  .page-wrapper {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .booking-card {
+    @apply bg-card border border-border rounded-xl shadow-sm p-6 transition-shadow duration-300;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium
+           transition-all duration-200 hover:opacity-90 active:scale-[0.98]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  .btn-outline {
+    @apply border border-border text-foreground px-6 py-3 rounded-lg font-medium
+           transition-all duration-200 hover:bg-muted active:scale-[0.98]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold tracking-tight;
+    font-family: var(--font-display);
+  }
+
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-md border border-border/50 rounded-2xl;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+  }
+}
