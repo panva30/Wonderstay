@@ -148,6 +148,29 @@ drop policy if exists bookings_modify_own on public.bookings;
 create policy bookings_modify_own on public.bookings
 for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 
+-- Prevent overlapping bookings using daterange exclusion constraint
+create extension if not exists btree_gist;
+alter table public.bookings
+  add column if not exists booking_range daterange
+  generated always as (
+    case
+      when status in ('upcoming','ongoing') then daterange(start_date, end_date, '[)')
+      else null
+    end
+  ) stored;
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'bookings_no_overlap'
+      and conrelid = 'public.bookings'::regclass
+  ) then
+    alter table public.bookings
+      add constraint bookings_no_overlap
+      exclude using gist (listing_id with =, booking_range with &&);
+  end if;
+end $$;
+
 drop policy if exists booking_requests_insert_all on public.booking_requests;
 create policy booking_requests_insert_all on public.booking_requests
 for insert using (true) with check (true);

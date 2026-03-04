@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { serverSupabase } from '@/lib/supabase-server';
 
 /**
  * GET /api/resorts
@@ -7,7 +8,11 @@ import { supabase } from '@/lib/supabase';
  */
 export async function GET() {
   try {
-    const { data, error } = await supabase
+    const client = serverSupabase || supabase;
+    if (!client) {
+      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+    }
+    const { data, error } = await client
       .from('resorts')
       .select('*')
       .order('created_at', { ascending: false });

@@ -1,7 +1,14 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Clock, CheckCircle2, XCircle, MapPin, Users } from "lucide-react";
-import { mockBookings, type BookingStatus } from "@/lib/bookings";
+import { Calendar as CalendarIcon, Clock, CheckCircle2, XCircle, MapPin, Users } from "lucide-react";
+import { type BookingStatus } from "@/lib/bookings";
+import { getBookings } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { computeNextAvailable } from "@/lib/date-range";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
 const tabs: { key: BookingStatus | "all"; label: string; icon: JSX.Element }[] = [
@@ -15,10 +22,61 @@ const tabs: { key: BookingStatus | "all"; label: string; icon: JSX.Element }[] =
 export default function BookingsPage() {
   const [tab, setTab] = useState<BookingStatus | "all">("ongoing");
   const { format } = useCurrency();
+  const queryClient = useQueryClient();
+  const { data: bookings = [] } = useQuery({
+    queryKey: ["userBookings"],
+    queryFn: getBookings,
+    staleTime: 30_000,
+  });
 
   const items = useMemo(() => {
-    return tab === "all" ? mockBookings : mockBookings.filter((b) => b.status === tab);
-  }, [tab]);
+    return tab === "all" ? bookings : bookings.filter((b: any) => b.status === tab);
+  }, [tab, bookings]);
+
+  const [editId, setEditId] = useState<string | null>(null);
+  const [range, setRange] = useState<{ from?: Date; to?: Date }>({});
+  const { data: availability } = useQuery<{ windows: { start_date: string; end_date: string }[] }>({
+    queryKey: ["availability-edit", editId],
+    queryFn: async () => {
+      const res = await fetch(`/api/availability/${editId ? items.find((b: any) => b.id === editId)?.listingId : ""}`);
+      return res.json();
+    },
+    enabled: Boolean(editId),
+    staleTime: 30_000,
+  });
+  const windows = availability?.windows ?? [];
+  const disabled = (d: Date) => {
+    const t = d.getTime();
+    return windows.some((w) => {
+      const s = new Date(w.start_date).getTime();
+      const e = new Date(w.end_date).getTime();
+      return t >= s && t < e;
+    });
+  };
+
+  const onCancel = async (id: string) => {
+    try {
+      const session = await supabase?.auth.getSession();
+      const token = session?.data.session?.access_token;
+      const res = await fetch(`/api/bookings/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ reason: "Cancelled by user" }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast.success("Booking cancelled");
+        queryClient.invalidateQueries({ queryKey: ["userBookings"] });
+      } else {
+        toast.error(j.error || "Could not cancel booking");
+      }
+    } catch {
+      toast.error("Could not cancel booking");
+    }
+  };
 
   return (
     <div className="page-wrapper py-8">
@@ -81,7 +139,7 @@ export default function BookingsPage() {
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
+                      <CalendarIcon className="w-4 h-4" />
                       <span>
                         {new Date(b.startDate).toLocaleDateString()} – {new Date(b.endDate).toLocaleDateString()}
                       </span>
@@ -95,7 +153,70 @@ export default function BookingsPage() {
                     <p className="font-semibold">{format(b.total)}</p>
                     <div className="flex gap-2">
                       {b.status === "upcoming" && (
-                        <button className="btn-outline px-4 py-2">Cancel</button>
+                        <>
+                          <button onClick={() => onCancel((b as any).id)} className="btn-outline px-4 py-2">Cancel</button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <span
+                                onClick={() => { setEditId((b as any).id); setRange({}); }}
+                                className="btn-outline px-4 py-2 inline-flex items-center justify-center cursor-pointer select-none"
+                                role="button"
+                                tabIndex={0}
+                              >
+                                Modify dates
+                              </span>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Modify booking dates</DialogTitle>
+                              </DialogHeader>
+                              <Calendar
+                                mode="range"
+                                selected={range as any}
+                                onSelect={(r: any) => setRange(r ?? {})}
+                                disabled={disabled}
+                              />
+                              <div className="flex justify-end gap-2 mt-3">
+                                <button
+                                  className="btn-primary px-4 py-2"
+                                  onClick={async () => {
+                                    const session = await supabase?.auth.getSession();
+                                    const token = session?.data.session?.access_token;
+                                    const fromISO = range.from?.toISOString().slice(0, 10);
+                                    const toISO = range.to?.toISOString().slice(0, 10);
+                                    if (!fromISO || !toISO) {
+                                      toast.error("Select a date range");
+                                      return;
+                                    }
+                                    const res = await fetch(`/api/bookings/${(b as any).id}`, {
+                                      method: "PATCH",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                                      },
+                                      body: JSON.stringify({ start_date: fromISO, end_date: toISO }),
+                                    });
+                                    const j = await res.json().catch(() => ({}));
+                                    if (res.status === 409) {
+                                      const suggestion = computeNextAvailable(fromISO, toISO, windows);
+                                      toast.error(`Dates unavailable. Try ${suggestion.fromISO} to ${suggestion.toISO}.`);
+                                      return;
+                                    }
+                                    if (!res.ok) {
+                                      toast.error(j.error || "Could not modify booking");
+                                      return;
+                                    }
+                                    toast.success("Booking updated");
+                                    queryClient.invalidateQueries({ queryKey: ["userBookings"] });
+                                    setEditId(null);
+                                  }}
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </>
                       )}
                       <button className="btn-primary px-4 py-2">Details</button>
                     </div>

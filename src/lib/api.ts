@@ -51,13 +51,30 @@ export async function getBookings(): Promise<Booking[]> {
 }
 
 export async function createBooking(payload: Omit<Booking, "id" | "status"> & { status?: Booking["status"] }): Promise<{ ok: boolean; id?: string; error?: string }> {
-  if (!hasSupabaseEnv || !supabase) return { ok: false, error: "supabase_not_configured" };
-  const ok = await ensureSupabaseConnectivity();
-  if (!ok) return { ok: false, error: "supabase_unreachable" };
-  const { data, error } = await supabase.from("bookings").insert([{ ...payload }]).select("id").single();
-  if (error) return { ok: false, error: error.message };
-  const row = data as { id: string } | null;
-  return { ok: true, id: row?.id };
+  try {
+    const res = await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        listing_id: payload.listingId,
+        start_date: payload.startDate,
+        end_date: payload.endDate,
+        guests: payload.guests,
+        total: payload.total,
+        status: payload.status ?? "upcoming",
+      }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (res.status === 201) {
+      return { ok: true, id: j.id };
+    }
+    if (res.status === 409) {
+      return { ok: false, error: j.error || "booking_conflict" };
+    }
+    return { ok: false, error: j.error || "booking_failed" };
+  } catch (e: any) {
+    return { ok: false, error: "booking_failed" };
+  }
 }
 
 export async function sendBookingRequest(input: { listing_id: string; check_in: string; check_out: string; guests: number }): Promise<{ ok: boolean; error?: string }> {

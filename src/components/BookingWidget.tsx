@@ -2,30 +2,57 @@ import { useState } from "react";
 import { CalendarDays, Users, ArrowRight } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { toast } from "sonner";
-import { sendBookingRequest } from "@/lib/api";
+import { createBooking, sendBookingRequest } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { Calendar } from "@/components/ui/calendar";
+import { computeNextAvailable } from "@/lib/date-range";
 
 interface BookingWidgetProps {
   pricePerNight: number;
   maxGuests: number;
   listingId?: string;
+  externalRange?: { from?: Date; to?: Date };
+  showCalendar?: boolean;
 }
 
-export default function BookingWidget({ pricePerNight, maxGuests, listingId }: BookingWidgetProps) {
+export default function BookingWidget({ pricePerNight, maxGuests, listingId, externalRange, showCalendar = true }: BookingWidgetProps) {
   const { format } = useCurrency();
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
+  const { data: availability } = useQuery<{ windows: { start_date: string; end_date: string }[] }>({
+    queryKey: ["availability", listingId],
+    queryFn: async () => {
+      const res = await fetch(`/api/availability/${listingId}`);
+      return res.json();
+    },
+    enabled: Boolean(listingId),
+    staleTime: 30_000,
+  });
+  const windows = availability?.windows ?? [];
 
+  const rangeSelected = externalRange ?? (checkIn && checkOut ? { from: new Date(checkIn), to: new Date(checkOut) } : undefined);
+  const disabled = (d: Date) => {
+    const t = d.getTime();
+    return windows.some((w) => {
+      const s = new Date(w.start_date).getTime();
+      const e = new Date(w.end_date).getTime();
+      return t >= s && t < e;
+    });
+  };
+
+  const effCheckIn = rangeSelected?.from ? rangeSelected.from.toISOString().slice(0, 10) : checkIn;
+  const effCheckOut = rangeSelected?.to ? rangeSelected.to.toISOString().slice(0, 10) : checkOut;
   const nights =
-    checkIn && checkOut
-      ? Math.max(0, Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)))
+    effCheckIn && effCheckOut
+      ? Math.max(0, Math.ceil((new Date(effCheckOut).getTime() - new Date(effCheckIn).getTime()) / (1000 * 60 * 60 * 24)))
       : 0;
 
   const total = nights * pricePerNight;
   const serviceFee = Math.round(total * 0.1);
 
   const handleReserve = async () => {
-    if (!checkIn || !checkOut) {
+    if (!effCheckIn || !effCheckOut) {
       toast.error("Please select check-in and check-out dates");
       return;
     }
@@ -34,51 +61,59 @@ export default function BookingWidget({ pricePerNight, maxGuests, listingId }: B
       return;
     }
     if (listingId) {
-      const res = await sendBookingRequest({
-        listing_id: listingId,
-        check_in: checkIn,
-        check_out: checkOut,
+      const total = nights * pricePerNight + Math.round(nights * pricePerNight * 0.1);
+      const res = await createBooking({
+        listingId,
+        title: "",
+        image: "",
+        location: "",
+        country: "",
+        startDate: effCheckIn,
+        endDate: effCheckOut,
         guests,
+        total,
+        status: "upcoming",
       });
-      if (res.ok) {
-        toast.success("Booking request sent");
+      if (!res.ok) {
+        if (res.error === "booking_conflict") {
+          const suggestion = computeNextAvailable(effCheckIn, effCheckOut, windows);
+          toast.error(`Dates unavailable. Try ${suggestion.fromISO} to ${suggestion.toISO}.`);
+        } else {
+          toast.error(res.error || "Could not create booking");
+        }
         return;
       }
+      toast.success("Booking created");
+      return;
     }
     toast.success("Booking request sent! (Demo mode)");
   };
 
   return (
-    <div className="booking-card sticky top-24">
+    <div className="booking-card lg:sticky lg:top-24">
       <div className="mb-4">
         <span className="text-2xl font-bold font-display">{format(pricePerNight)}</span>
         <span className="text-muted-foreground"> /night</span>
       </div>
 
       <div className="space-y-3 mb-4">
-        <div className="grid grid-cols-2 gap-3">
+        {showCalendar && (
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">CHECK-IN</label>
-            <div className="relative">
-              <input
-                type="date"
-                value={checkIn}
-                onChange={(e) => setCheckIn(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">CHECK-OUT</label>
-            <input
-              type="date"
-              value={checkOut}
-              onChange={(e) => setCheckOut(e.target.value)}
-              min={checkIn}
-              className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">DATES</label>
+            <Calendar
+              className="w-full"
+              mode="range"
+              selected={rangeSelected as any}
+              onSelect={(r: any) => {
+                if (r?.from) setCheckIn(r.from.toISOString().slice(0, 10));
+                else setCheckIn("");
+                if (r?.to) setCheckOut(r.to.toISOString().slice(0, 10));
+                else setCheckOut("");
+              }}
+              disabled={disabled}
             />
           </div>
-        </div>
+        )}
 
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">GUESTS</label>

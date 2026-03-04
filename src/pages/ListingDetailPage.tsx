@@ -1,11 +1,15 @@
 import { useParams, Link } from "react-router-dom";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Star, Users, BedDouble, Bath, Calendar, TrainFront, Bus, Plane } from "lucide-react";
 import HeartButton from "@/components/HeartButton";
 import BookingWidget from "@/components/BookingWidget";
 import AmenitiesGrid from "@/components/AmenitiesGrid";
 import GallerySlider from "@/components/GallerySlider";
+import MapView from "@/components/MapView";
 import ReviewCard from "@/components/ReviewCard";
+import AvailabilityCalendar from "@/components/AvailabilityCalendar";
+import { Calendar as DateCalendar } from "@/components/ui/calendar";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { getListingById, getReviews } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +29,7 @@ export default function ListingDetailPage() {
     enabled: Boolean(id),
     retry: 0,
   });
+  const [range, setRange] = useState<{ from?: Date; to?: Date }>({});
 
   if (!listing) {
     return (
@@ -98,37 +103,18 @@ export default function ListingDetailPage() {
             <AmenitiesGrid amenities={listing.amenities} />
           </div>
 
-          {/* Location Map */}
           <div>
             <h2 className="font-display text-xl font-semibold mb-3">Location</h2>
-            <div className="rounded-xl overflow-hidden border border-border bg-muted/50 aspect-[16/9] relative z-0 flex items-center justify-center">
-              {/* 
-              <MapContainer 
-                center={[listing.coordinates[1], listing.coordinates[0]]} 
-                zoom={13} 
-                style={{ height: "100%", width: "100%" }}
-                scrollWheelZoom={false}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <Marker position={[listing.coordinates[1], listing.coordinates[0]]}>
-                  <Popup>
-                    <div className="text-sm font-medium">
-                      {listing.title}<br />
-                      <span className="text-xs text-muted-foreground">{listing.location}</span>
-                    </div>
-                  </Popup>
-                </Marker>
-              </MapContainer>
-              */}
-              <div className="text-center">
-                <MapPin className="w-8 h-8 text-primary mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">{listing.location}, {listing.country}</p>
-                <p className="text-xs text-muted-foreground mt-1">Interactive Map temporarily disabled (installing dependencies...)</p>
-              </div>
-            </div>
+            <MapView
+              center={[listing.coordinates[1], listing.coordinates[0]]}
+              markers={[
+                {
+                  position: [listing.coordinates[1], listing.coordinates[0]],
+                  title: listing.title,
+                  subtitle: listing.location,
+                },
+              ]}
+            />
             <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
               <MapPin className="w-4 h-4" />
               <span>{listing.location}, {listing.country}</span>
@@ -211,7 +197,23 @@ export default function ListingDetailPage() {
 
         {/* Sidebar: Booking */}
         <div>
-          <BookingWidget pricePerNight={listing.price} maxGuests={listing.capacity.guests} listingId={listing.id} />
+          <div className="booking-card mb-6">
+            <h3 className="font-display text-lg font-semibold mb-2">Select Dates</h3>
+            <DateCalendar
+              className="w-full"
+              mode="range"
+              selected={range as any}
+              onSelect={(r: any) => setRange(r ?? {})}
+            />
+          </div>
+          <BookingWidget
+            pricePerNight={listing.price}
+            maxGuests={listing.capacity.guests}
+            listingId={listing.id}
+            externalRange={range}
+            showCalendar={false}
+          />
+          <AvailabilityCalendar listingId={listing.id} />
         </div>
       </div>
     </div>
