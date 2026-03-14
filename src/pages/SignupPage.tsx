@@ -9,6 +9,7 @@ export default function SignupPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isOwner, setIsOwner] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -29,14 +30,18 @@ export default function SignupPage() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: username } },
+        options: { data: { full_name: username, role: isOwner ? "owner" : "user" } },
       });
       if (error) {
         toast.error(error.message);
         return;
       }
       if (data.user) {
-        await supabase.from("profiles").upsert({ id: data.user.id, full_name: username });
+        await supabase.from("profiles").upsert({ 
+          id: data.user.id, 
+          full_name: username,
+          role: isOwner ? "owner" : "user"
+        });
       }
       if (data.session) {
         toast.success("Signed up successfully");
@@ -113,6 +118,19 @@ export default function SignupPage() {
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 py-2">
+            <input 
+              type="checkbox" 
+              id="isOwner" 
+              checked={isOwner} 
+              onChange={(e) => setIsOwner(e.target.checked)}
+              className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+            />
+            <label htmlFor="isOwner" className="text-sm text-muted-foreground cursor-pointer select-none">
+              Register as a Resort/Hotel Owner
+            </label>
           </div>
 
           <button type="submit" className="btn-primary w-full" disabled={loading}>

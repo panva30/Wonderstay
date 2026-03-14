@@ -17,14 +17,14 @@ const amenityIcons: Record<string, React.ReactNode> = {
 
 export default function AmenitiesGrid({ amenities }: { amenities: string[] }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-12">
       {amenities.map((a) => (
         <div
           key={a}
-          className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border"
+          className="flex items-center gap-4 py-1"
         >
-          <span className="text-primary">{amenityIcons[a] || <Sparkles className="w-5 h-5" />}</span>
-          <span className="text-sm font-medium">{a}</span>
+          <span className="text-foreground/80">{amenityIcons[a] || <Sparkles className="w-5 h-5" />}</span>
+          <span className="text-base font-normal text-foreground/90">{a}</span>
         </div>
       ))}
     </div>

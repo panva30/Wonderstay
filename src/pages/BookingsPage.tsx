@@ -13,10 +13,10 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 
 const tabs: { key: BookingStatus | "all"; label: string; icon: JSX.Element }[] = [
   { key: "ongoing", label: "Ongoing", icon: <Clock className="w-4 h-4" /> },
-  { key: "upcoming", label: "Upcoming", icon: <Calendar className="w-4 h-4" /> },
+  { key: "upcoming", label: "Upcoming", icon: <CalendarIcon className="w-4 h-4" /> },
   { key: "completed", label: "Completed", icon: <CheckCircle2 className="w-4 h-4" /> },
   { key: "cancelled", label: "Cancelled", icon: <XCircle className="w-4 h-4" /> },
-  { key: "all", label: "All", icon: <Calendar className="w-4 h-4" /> },
+  { key: "all", label: "All", icon: <CalendarIcon className="w-4 h-4" /> },
 ];
 
 export default function BookingsPage() {

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
+import { ThemeProvider } from "next-themes";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ConnectivityBanner from "@/components/ConnectivityBanner";
@@ -20,6 +21,8 @@ import ProfilePage from "./pages/ProfilePage";
 import ProfileSettingsPage from "./pages/ProfileSettingsPage";
 import AdminMediaPage from "./pages/AdminMediaPage";
 import HostAvailabilityPage from "./pages/HostAvailabilityPage";
+import OwnerDashboard from "./pages/OwnerDashboard";
+import AddResortPage from "./pages/AddResortPage";
 import NotFound from "./pages/NotFound";
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -28,39 +31,48 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <CurrencyProvider>
-        <FavoritesProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <ErrorBoundary>
-              <div className="min-h-screen flex flex-col">
-                <ConnectivityBanner />
-                <Navbar />
-                <main className="flex-1">
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/listing" element={<Navigate to="/listings" replace />} />
-                    <Route path="/listings" element={<ListingsPage />} />
-                    <Route path="/listings/:id" element={<ListingDetailPage />} />
-                    <Route path="/favorites" element={<FavoritesPage />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/signup" element={<SignupPage />} />
-                    <Route path="/about" element={<AboutPage />} />
-                    <Route path="/bookings" element={<BookingsPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/profile/settings" element={<ProfileSettingsPage />} />
-                    <Route path="/admin/media" element={<AdminMediaPage />} />
-                    <Route path="/host/availability" element={<HostAvailabilityPage />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </main>
-                <Footer />
-              </div>
-            </ErrorBoundary>
-          </BrowserRouter>
-        </FavoritesProvider>
-      </CurrencyProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <CurrencyProvider>
+          <FavoritesProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true,
+              }}
+            >
+              <ErrorBoundary>
+                <div className="min-h-screen flex flex-col">
+                  <ConnectivityBanner />
+                  <Navbar />
+                  <main className="flex-1">
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/listing" element={<Navigate to="/listings" replace />} />
+                      <Route path="/listings" element={<ListingsPage />} />
+                      <Route path="/listings/:id" element={<ListingDetailPage />} />
+                      <Route path="/favorites" element={<FavoritesPage />} />
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/signup" element={<SignupPage />} />
+                      <Route path="/about" element={<AboutPage />} />
+                      <Route path="/bookings" element={<BookingsPage />} />
+                      <Route path="/profile" element={<ProfilePage />} />
+                      <Route path="/profile/settings" element={<ProfileSettingsPage />} />
+                      <Route path="/admin/media" element={<AdminMediaPage />} />
+                      <Route path="/host/availability" element={<HostAvailabilityPage />} />
+                      <Route path="/owner/dashboard" element={<OwnerDashboard />} />
+                      <Route path="/owner/add-resort" element={<AddResortPage />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </main>
+                  <Footer />
+                </div>
+              </ErrorBoundary>
+            </BrowserRouter>
+          </FavoritesProvider>
+        </CurrencyProvider>
+      </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

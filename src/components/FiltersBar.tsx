@@ -15,21 +15,25 @@ interface FiltersBarProps {
 }
 
 export default function FiltersBar({
-  search, category, season, sort,
-  onSearchChange, onCategoryChange, onSeasonChange, onSortChange, onLocationSelect
+  search, sort,
+  onSearchChange, onSortChange, onLocationSelect
 }: FiltersBarProps) {
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col md:flex-row items-center gap-4 bg-card p-4 rounded-2xl border border-border shadow-sm">
       {/* Search */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1">
-          <LocationSearch 
-            onLocationSelect={(l) => {
-              onSearchChange(l.name);
-              if (onLocationSelect) onLocationSelect(l.lat, l.lon);
-            }} 
-          />
+      <div className="flex-1 w-full relative group">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+          <Search className="w-5 h-5" />
         </div>
+        <LocationSearch 
+          onLocationSelect={(l) => {
+            onSearchChange(l.name);
+            if (onLocationSelect) onLocationSelect(l.lat, l.lon);
+          }} 
+        />
+      </div>
+
+      <div className="flex items-center gap-3 w-full md:w-auto">
         <button
           onClick={() => {
             if ("geolocation" in navigator) {
@@ -39,69 +43,27 @@ export default function FiltersBar({
               });
             }
           }}
-          className="flex items-center gap-2 px-4 py-3 rounded-xl bg-primary/10 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/20 transition-colors shrink-0"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/5 text-primary border border-primary/10 text-sm font-semibold hover:bg-primary/10 transition-all shrink-0 active:scale-95"
         >
           <MapPin className="w-4 h-4" />
           Near Me
         </button>
-      </div>
 
-      {/* Category pills */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => onCategoryChange(undefined)}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-transform duration-200 ${
-            !category ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground hover:bg-muted/90"
-          }`}
-          style={{ transformOrigin: "center" }}
-          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-          onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-        >
-          All
-        </button>
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => onCategoryChange(cat === category ? undefined : cat)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-transform duration-200 ${
-              category === cat ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground hover:bg-muted/90"
-            }`}
-            style={{ transformOrigin: "center" }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-            onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-            onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+        <div className="h-8 w-[1px] bg-border hidden md:block mx-1"></div>
+
+        <div className="relative flex-1 md:flex-none">
+          <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <select
+            value={sort}
+            onChange={(e) => onSortChange(e.target.value as SortOption)}
+            className="w-full md:w-48 pl-10 pr-4 py-2.5 rounded-xl bg-muted/50 border border-border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer transition-all hover:bg-muted"
           >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Season + Sort */}
-      <div className="flex flex-wrap gap-3">
-        <select
-          value={season || ""}
-          onChange={(e) => onSeasonChange((e.target.value as Season) || undefined)}
-          className="bg-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="">All Seasons</option>
-          {SEASONS.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-        <select
-          value={sort}
-          onChange={(e) => onSortChange(e.target.value as SortOption)}
-          className="bg-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="newest">Newest</option>
-          <option value="price_asc">Price: Low → High</option>
-          <option value="price_desc">Price: High → Low</option>
-          <option value="rating_desc">Rating: High → Low</option>
-          <option value="rating_asc">Rating: Low → High</option>
-        </select>
+            <option value="newest">Newest first</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="rating_desc">Best rated</option>
+          </select>
+        </div>
       </div>
     </div>
   );
